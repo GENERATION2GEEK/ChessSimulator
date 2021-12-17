@@ -6,7 +6,7 @@ from random import randint
 
 clearConsole = lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
 
-pieces = ["T1","C1","F1","RE","RO","F2","C2","T2"]
+pieces = ["r","n","b","q","k","b","n","r"]
 
 clearConsole()
 
@@ -26,10 +26,10 @@ def create_game_board():
     ensure: return a correct game board
     """
     return create_and_initialise_matrix(8,8, ' ')
-    
+
+"""
 def initialise_game_board():
     board = create_game_board()
-    # initialise black pawns
     for i in range(8):
         board[1][i] = "P" + str(i) + "_N"
         board[6][i] = "P" + str(i) + "_B"
@@ -37,6 +37,37 @@ def initialise_game_board():
         board[7][i] = pieces[i] + "_B"
     
     return board
+"""
+
+def initialise_game_board():
+    board = create_game_board()
+    for i in range(8):
+        board[1][i] = "p"
+        board[6][i] = "P"
+        board[0][i] = pieces[i]
+        board[7][i] = pieces[i].upper()
+    
+    return board
+
+
+# Exemple of fen string : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+def initialise_game_board_from_fen(fen_string):
+    board = create_game_board()
+    fenboard = fen_string.split(' ')[0] # on récupère les positions des pièces de la chaine FEN
+    pos_x, pos_y = (0, 0)
+    for i in fenboard:
+        if i == "/":
+            pos_x = 0
+            pos_y += 1
+        else:
+            if i.isdigit():
+                pos_x += int(i)
+            else:
+                board[pos_y][pos_x] = i
+                pos_x += 1
+    return board
+
+
 
 
 def print_matrix(matrix):
@@ -45,12 +76,7 @@ def print_matrix(matrix):
     require: matrix (list)
     ensure: print a beautiful matrix in the console
     """
-    copy = matrix[:]
-    for i in copy:
-        for k in i:
-            if k == ' ':
-                k = '    '
-            
+    for i in matrix:     
         print(i)
 
 
@@ -61,18 +87,20 @@ def print_game_board(board):
     require: board (list)
     ensure: print a beautiful board in the console
     
-    PREVIOUS VERSION (bataille navale):
+    """
+    row = 8
     for i in board:
-        print("-----------------------------------------")
+        print("+---+---+---+---+---+---+---+---+")
         line = "| "
         for k in i:
             line += k + " | "
-        print(line)
-    print("-----------------------------------------")
-    """
-    print_matrix(board)
+        print(line + str(row))
+        row -= 1
+    print("+---+---+---+---+---+---+---+---+")
+    print("  a   b   c   d   e   f   g   h  ")
+    
 
-game_board = initialise_game_board()
+game_board = initialise_game_board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 
 def is_in_matrix(matrix, x, y):
     """
@@ -173,43 +201,27 @@ def is_someone_on_the_path(start_pos, end_pos):
         result = False
     return result
 
-print(is_someone_on_the_path((4,5), (0,1)))
+#print(is_someone_on_the_path((4,5), (0,1)))
 
 def is_position_valid(piece_name, start_pos, end_pos):
     position_valid = True
-    
-    piece_type = piece_name[0]
-    piece_color = piece_name[3]
     start_x, start_y = start_pos[0], start_pos[1]
     end_x, end_y = end_pos[0], end_pos[1]
     piece_target = game_board[end_y][end_x]
-    if piece_color == "N":
-        if piece_type == "P":
-            if start_x == end_x:
-                if piece_target != ' ':    
-                    distance = end_y - start_y
-                    if distance == 2 and start_y != 1:
-                        position_valid = False
-                    elif distance == 1:
-                        position_valid = True
-                    else:
-                        position_valid = False
+    # PION
+    if piece_name == "p" or piece_name == "P": 
+        if start_x == end_x:
+            if piece_target != ' ':    
+                distance = end_y - start_y if piece_name == "p" else start_y - end_y
+                if distance == 2 and start_y != 1:
+                    position_valid = False
+                elif distance == 1:
+                    position_valid = True
                 else:
                     position_valid = False
+            else:
+                position_valid = False
     
-    else:
-        if piece_type == "P":
-            if start_x == end_x:
-                if piece_target != ' ':    
-                    distance = start_y - end_y
-                    if distance == 2 and start_y != 6:
-                        position_valid = False
-                    elif distance == 1:
-                        position_valid = True
-                    else:
-                        position_valid = False
-                else:
-                    position_valid = False
     
     return position_valid
 
@@ -228,7 +240,7 @@ def move_piece(piece_name, end_x, end_y):
 #to_move = enter_position(game_board)
 
 
-to_move = ('P0_B', 0, 1)
+#to_move = ('P0_B', 0, 1)
 
-print(move_piece(to_move[0], to_move[1], to_move[2]))
-print_game_board(game_board)
+#print(move_piece(to_move[0], to_move[1], to_move[2]))
+#print_game_board(game_board)
