@@ -8,7 +8,8 @@ clearConsole = lambda: os.system('cls' if os.name in ('nt', 'dos') else 'clear')
 
 pieces = ["T1","C1","F1","RE","RO","F2","C2","T2"]
 
- 
+clearConsole()
+
 def create_and_initialise_matrix(lon, lar, val):
     """
     require: lon, lar, val are not null integers
@@ -20,7 +21,7 @@ def create_and_initialise_matrix(lon, lar, val):
 
 def create_game_board():
     """
-    Permet de créer un plateau de jeu (matrice 9x9) (pour mettre les coordonnées)
+    Permet de créer un plateau de jeu (matrice 8x8)
     require: nothing
     ensure: return a correct game board
     """
@@ -65,3 +66,151 @@ def print_game_board(board):
     print("-----------------------------------------")
     """
     print_matrix(board)
+
+game_board = initialise_game_board()
+
+def is_in_matrix(matrix, x, y):
+    """
+    Vérifie si des coordonnées sont dans une matrice
+    require: matrix (list), x, y (integers)
+    ensure: return True if the coordinates are in the matrice, False otherwise
+    return: boolean
+    """
+    return len(matrix[0]) > x and len(matrix) > y
+
+def get_piece_coordinates(piece_name):
+    x, y = (-1,-1) # the piece is not on the board at this point
+    for i in range(len(game_board)):
+        for k in range(len(game_board[i])):
+            if game_board[i][k] == piece_name:
+                x, y = (k, i)
+    return (x,y)
+
+def is_a_piece(piece_name):
+    is_a_piece = get_piece_coordinates(piece_name) != (-1,-1)
+    return is_a_piece
+
+
+
+def force_integer_input(text):
+    """
+    Demande à l'utilisateur d'entrer un nombre entier pour éviter les erreurs
+    require: input text
+    ensure: force the user to enter a correct integer
+    return: an integer !!!
+    """
+    var = input(text)
+    while isinstance(var, str): # Tant que var est un string
+        try:
+            var = int(var)
+        except:
+            print("Vous devez entrer un nombre entier.")
+            var = input(text)
+
+    return var
+
+def enter_position(board):
+    """
+    Demande à l'utilisateur d'entrer des coordonnées appartenant au plateau
+    require: board (list)
+    ensure: force the user to enter correct coordinates (integers)
+    return: tuple (x, y) => coordinates
+    """
+    piece = input("Entrez le nom de la pièce à bouger : ")
+    pos_x = force_integer_input("Entrez une coordonnée en x : ")
+    pos_y = force_integer_input("Entrez une coordonnée en y : ")
+    while not is_in_matrix(board, pos_x, pos_y):
+        print("Ces coordonnées n'existent pas sur le plateau.")
+        pos_x = force_integer_input("Entrez une coordonnée en x : ")
+        pos_y = force_integer_input("Entrez une coordonnée en y : ")
+    while not is_a_piece(piece):
+        print("Cette pièce n'existe pas sur le plateau.")
+        piece = input("Entrez le nom de la pièce à bouger : ")
+    return (piece, pos_x, pos_y)
+
+def is_someone_on_the_path(start_pos, end_pos):
+    result = False
+    start_x, start_y = start_pos[0], start_pos[1]
+    end_x, end_y = end_pos[0], end_pos[1]
+    if start_x == end_x: # on se déplace verticalement
+        for i in range(abs(end_y-start_y)):
+            if start_y < end_y:
+                if game_board[start_y+i][start_x] != ' ':
+                    result = True
+            else:
+                if game_board[start_y-i][start_x] != ' ':
+                    result = True
+    elif start_y == end_y: # on se déplace horizontalement
+        for i in range(abs(end_x-start_x)):
+            if start_x < end_x:
+                if game_board[start_y][start_x+i] != ' ':
+                    result = True
+            else:
+                if game_board[start_y][start_x-i] != ' ':
+                    result = True
+    #elif abs(end_y - start_y) == abs(end_x - start_x): # on se déplace en diagonale (les problèmes)
+    #    for i in range((end_y - start_y)):
+    #        if game_board
+    else:
+        result = False
+    return result
+
+print(is_someone_on_the_path((1,3), (5,3)))
+
+def is_position_valid(piece_name, start_pos, end_pos):
+    position_valid = True
+    
+    piece_type = piece_name[0]
+    piece_color = piece_name[3]
+    start_x, start_y = start_pos[0], start_pos[1]
+    end_x, end_y = end_pos[0], end_pos[1]
+    piece_target = game_board[end_y][end_x]
+    if piece_color == "N":
+        if piece_type == "P":
+            if start_x == end_x:
+                if piece_target != ' ':    
+                    distance = end_y - start_y
+                    if distance == 2 and start_y != 1:
+                        position_valid = False
+                    elif distance == 1:
+                        position_valid = True
+                    else:
+                        position_valid = False
+                else:
+                    position_valid = False
+    
+    else:
+        if piece_type == "P":
+            if start_x == end_x:
+                if piece_target != ' ':    
+                    distance = start_y - end_y
+                    if distance == 2 and start_y != 6:
+                        position_valid = False
+                    elif distance == 1:
+                        position_valid = True
+                    else:
+                        position_valid = False
+                else:
+                    position_valid = False
+    
+    return position_valid
+
+
+def move_piece(piece_name, end_x, end_y):
+    piece_coord = get_piece_coordinates(piece_name)
+    piece_target = (end_x,end_y)
+    piece_moved = False
+    if is_position_valid(piece_name, piece_coord, piece_target):
+        game_board[piece_coord[1]][piece_coord[0]] = ' '
+        game_board[end_y][end_x] = piece_name
+        piece_moved = True
+    return piece_moved
+
+
+#to_move = enter_position(game_board)
+
+
+to_move = ('P0_B', 0, 1)
+
+print(move_piece(to_move[0], to_move[1], to_move[2]))
+print_game_board(game_board)
