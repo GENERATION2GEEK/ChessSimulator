@@ -45,7 +45,12 @@ def print_matrix(matrix):
     require: matrix (list)
     ensure: print a beautiful matrix in the console
     """
-    for i in matrix:
+    copy = matrix[:]
+    for i in copy:
+        for k in i:
+            if k == ' ':
+                k = '    '
+            
         print(i)
 
 
@@ -132,7 +137,23 @@ def is_someone_on_the_path(start_pos, end_pos):
     result = False
     start_x, start_y = start_pos[0], start_pos[1]
     end_x, end_y = end_pos[0], end_pos[1]
-    if start_x == end_x: # on se déplace verticalement
+    if abs(end_y - start_y) == abs(end_x - start_x): # on se déplace en diagonale (les problèmes)
+        for i in range((end_y - start_y)):
+            if start_x < end_x:
+                if start_y < end_y:
+                    if game_board[start_y+i][start_x+i] != ' ':
+                        result = True
+                else:
+                    if game_board[start_y-i][start_x+i] != ' ':
+                        result = True
+            else:
+                if start_y < end_y:
+                    if game_board[start_y+i][start_x-i] != ' ':
+                        result = True
+                else:
+                    if game_board[start_y-i][start_x-i] != ' ':
+                        result = True
+    elif start_x == end_x: # on se déplace verticalement
         for i in range(abs(end_y-start_y)):
             if start_y < end_y:
                 if game_board[start_y+i][start_x] != ' ':
@@ -147,15 +168,12 @@ def is_someone_on_the_path(start_pos, end_pos):
                     result = True
             else:
                 if game_board[start_y][start_x-i] != ' ':
-                    result = True
-    #elif abs(end_y - start_y) == abs(end_x - start_x): # on se déplace en diagonale (les problèmes)
-    #    for i in range((end_y - start_y)):
-    #        if game_board
+                    result = True  
     else:
         result = False
     return result
 
-print(is_someone_on_the_path((1,3), (5,3)))
+print(is_someone_on_the_path((4,5), (0,1)))
 
 def is_position_valid(piece_name, start_pos, end_pos):
     position_valid = True
