@@ -180,12 +180,15 @@ def enter_position(board):
         piece = input("Entrez le nom de la pièce à bouger : ")
     return (piece, pos_x, pos_y)
 
+
+
+
 def is_someone_on_the_path(board, start_pos, end_pos):
     result = False
     start_x, start_y = start_pos[0], start_pos[1]
     end_x, end_y = end_pos[0], end_pos[1]
     if abs(end_y - start_y) == abs(end_x - start_x): # on se déplace en diagonale (les problèmes)
-        for i in range((end_y - start_y)):
+        for i in range(1,abs(end_y - start_y)):
             if start_x < end_x:
                 if start_y < end_y:
                     if board[start_y+i][start_x+i] != ' ':
@@ -201,7 +204,7 @@ def is_someone_on_the_path(board, start_pos, end_pos):
                     if board[start_y-i][start_x-i] != ' ':
                         result = True
     elif start_x == end_x: # on se déplace verticalement
-        for i in range(abs(end_y-start_y)):
+        for i in range(1,abs(end_y-start_y)):
             if start_y < end_y:
                 if board[start_y+i][start_x] != ' ':
                     result = True
@@ -209,7 +212,7 @@ def is_someone_on_the_path(board, start_pos, end_pos):
                 if board[start_y-i][start_x] != ' ':
                     result = True
     elif start_y == end_y: # on se déplace horizontalement
-        for i in range(abs(end_x-start_x)):
+        for i in range(1,abs(end_x-start_x)):
             if start_x < end_x:
                 if board[start_y][start_x+i] != ' ':
                     result = True
@@ -221,6 +224,7 @@ def is_someone_on_the_path(board, start_pos, end_pos):
     return result
 
 #print(is_someone_on_the_path((4,5), (0,1)))
+
 
 def is_position_valid(board, piece_name, start_pos, end_pos):
 
@@ -250,11 +254,34 @@ def is_position_valid(board, piece_name, start_pos, end_pos):
                 if end_y == start_y - 1:
                     if piece_target != ' ' and piece_target.islower():
                         position_valid = True
+    # FOU
+    if piece_name in ("B", "b"):
+        if abs(end_y - start_y) == abs(end_x - start_x): # si on se déplace en diagonale
+            if ( piece_target == ' ' or piece_target.isupper() != piece_name.isupper() ) and not is_someone_on_the_path(board, start_pos, end_pos):
+                    position_valid = True
+
+    # TOUR
+    if piece_name in ("R", "r"):
+        if start_x == end_x or start_y == end_y:
+            if ( piece_target == ' ' or piece_target.isupper() != piece_name.isupper() ) and not is_someone_on_the_path(board, start_pos, end_pos):
+                    position_valid = True
     
+    # DAME
+    if piece_name in ("Q", "q"):
+        if abs(end_y - start_y) == abs(end_x - start_x) or start_x == end_x or start_y == end_y:
+            if ( piece_target == ' ' or piece_target.isupper() != piece_name.isupper() ) and not is_someone_on_the_path(board, start_pos, end_pos):
+                    position_valid = True 
+
+    # ROI
+    if piece_name in ("K", "k"):
+        if abs(end_y - start_y) <= 1 and abs(end_x - start_x) <= 1:
+            if ( piece_target == ' ' or piece_target.isupper() != piece_name.isupper() ) and not is_someone_on_the_path(board, start_pos, end_pos):
+                    position_valid = True
+
     
     return position_valid
 
-
+""" USELESS WITH USER INTERFACE
 def move_piece(board, piece_name, end_x, end_y):
     piece_coord = get_piece_coordinates(piece_name)
     piece_target = (end_x,end_y)
@@ -264,16 +291,7 @@ def move_piece(board, piece_name, end_x, end_y):
         board[end_y][end_x] = piece_name
         piece_moved = True
     return piece_moved
-
-
-#to_move = enter_position(game_board)
-
-
-#to_move = ('P0_B', 0, 1)
-
-#print(move_piece(to_move[0], to_move[1], to_move[2]))
-#print_game_board(game_board)
-
+"""
 
 # User Interface
 scr = pygame.display.set_mode((640,640))  
@@ -300,6 +318,7 @@ def UI_drawboard_from_matrice(UI_board, game_board):
                 UI_drawpiece(UI_board, piece_name, x, y)
 
 def UI_get_legal_moves(board, piece_x, piece_y):
+    print("Getting legal moves for", board[piece_y][piece_x])
     legal_moves_coord = []
     for y in range(8):
         for x in range(8):
@@ -315,6 +334,9 @@ def UI_Init(screen, UI_board, game_board):
     done = False  
     piece_draging = False
     last_move = False # [start_pos, end_pos]
+    legal_moves = None
+    tour = True # True = blanc, False = noir
+    
     while not done:  
         UI_makeboard(screen)
         if last_move:
@@ -334,14 +356,18 @@ def UI_Init(screen, UI_board, game_board):
                 sq_x, sq_y = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
                 
                 if game_board[sq_y][sq_x] != ' ': # Si il y a une pièce sur la case
-                    piece_draging = [sq_x, sq_y, UI_board[sq_y][sq_x], game_board[sq_y][sq_x]] # On stocke les coordonnées de la pièce, son nom et sa "surface" pour la déplacer
-                    UI_board[sq_y][sq_x] = ' ' # On enlève la pièce de l'UI
+                    if tour and game_board[sq_y][sq_x].isupper() or not tour and game_board[sq_y][sq_x].islower():
+                        piece_draging = [sq_x, sq_y, UI_board[sq_y][sq_x], game_board[sq_y][sq_x]] # On stocke les coordonnées de la pièce, son nom et sa "surface" pour la déplacer
+                        UI_board[sq_y][sq_x] = ' ' # On enlève la pièce de l'UI
+                        
+                    
 
             if event.type == pygame.MOUSEBUTTONUP:
                 if piece_draging:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     sq_x, sq_y = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
-                    legal_moves = UI_get_legal_moves(game_board, piece_draging[0], piece_draging[1])
+                    if legal_moves == None:
+                        legal_moves = UI_get_legal_moves(game_board, piece_draging[0], piece_draging[1])
                     if (sq_x, sq_y) in legal_moves: # Si la case sélectionnée est une case valide
                         # Play sound
                         if UI_board[sq_y][sq_x] != ' ': # If there is a piece here
@@ -356,15 +382,18 @@ def UI_Init(screen, UI_board, game_board):
                         game_board[sq_y][sq_x] = piece_draging[3]
                         game_board[piece_draging[1]][piece_draging[0]] = ' '
                         last_move = [(piece_draging[0], piece_draging[1]), (sq_x, sq_y)]
+                        tour = not tour # On change de joueur
                     else:
                         # On replace la pièce dans sa case d'origine
                         UI_board[piece_draging[1]][piece_draging[0]] = piece_draging[2] 
                     
                     piece_draging = False # On arrête de déplacer la pièce
+                    legal_moves = None # On vide les legal moves
         
         if piece_draging:
             # On affiche les cases valides
-            legal_moves = UI_get_legal_moves(game_board, sq_x, sq_y)
+            if legal_moves == None:
+                legal_moves = UI_get_legal_moves(game_board, sq_x, sq_y)
             for square in legal_moves:
                 green_color = (0,255,0)
                 hint = pygame.Surface((80,80))
