@@ -119,8 +119,6 @@ def print_game_board(board):
     print("  a   b   c   d   e   f   g   h  ")
     
 
-game_board = initialise_game_board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-
 def is_in_matrix(matrix, x, y):
     """
     Vérifie si des coordonnées sont dans une matrice
@@ -223,8 +221,6 @@ def is_someone_on_the_path(board, start_pos, end_pos):
         result = False
     return result
 
-#print(is_someone_on_the_path((4,5), (0,1)))
-
 
 def is_position_valid(board, piece_name, start_pos, end_pos):
 
@@ -232,53 +228,63 @@ def is_position_valid(board, piece_name, start_pos, end_pos):
     start_x, start_y = start_pos[0], start_pos[1]
     end_x, end_y = end_pos[0], end_pos[1]
     piece_target = board[end_y][end_x]
-    # PION
-    if piece_name in ('P', 'p'):
-        if start_x == end_x:
-            if piece_target == ' ':    
-                distance = end_y - start_y if piece_name == "p" else start_y - end_y
-                if distance == 2 and (start_y == 1 or start_y == 6):
-                    position_valid = True
-                elif distance == 1:
-                    position_valid = True
-                else:
-                    position_valid = False
-            else:
-                position_valid = False
-        elif end_x == start_x + 1 or end_x == start_x - 1:
-            if piece_name == "p":
-                if end_y == start_y + 1:
-                    if piece_target != ' ' and piece_target.isupper():
-                        position_valid = True
-            else:
-                if end_y == start_y - 1:
-                    if piece_target != ' ' and piece_target.islower():
-                        position_valid = True
-    # FOU
-    if piece_name in ("B", "b"):
-        if abs(end_y - start_y) == abs(end_x - start_x): # si on se déplace en diagonale
-            if ( piece_target == ' ' or piece_target.isupper() != piece_name.isupper() ) and not is_someone_on_the_path(board, start_pos, end_pos):
+
+    diag_move = abs(end_y - start_y) == abs(end_x - start_x)
+    vert_move = start_y == end_y
+    hor_move = start_x == end_x
+
+    # Vérification préliminaire
+    if piece_target == ' ' or piece_target.isupper() != piece_name.isupper():
+        # CAVALIER
+        if piece_name in ('N', 'n'):
+            dir_offset = [(-1,-2), (1,-2), (2,-1), (2,1), (1,2), (-1,2), (-2,1), (-2,-1)]
+            for x, y in dir_offset:
+                if start_x + x == end_x and start_y + y == end_y:
                     position_valid = True
 
-    # TOUR
-    if piece_name in ("R", "r"):
-        if start_x == end_x or start_y == end_y:
-            if ( piece_target == ' ' or piece_target.isupper() != piece_name.isupper() ) and not is_someone_on_the_path(board, start_pos, end_pos):
+
+        # Vérification de la présence d'une pièce sur la trajectoire
+        if not is_someone_on_the_path(board, start_pos, end_pos):
+            # PION
+            if piece_name in ('P', 'p'):
+                if hor_move:
+                    if piece_target == ' ':    
+                        distance = end_y - start_y if piece_name == "p" else start_y - end_y
+                        if distance == 2 and (start_y == 1 or start_y == 6):
+                            position_valid = True
+                        elif distance == 1:
+                            position_valid = True
+                        else:
+                            position_valid = False
+                elif end_x == start_x + 1 or end_x == start_x - 1:
+                    if piece_name == "p":
+                        if end_y == start_y + 1:
+                            if piece_target != ' ' and piece_target.isupper():
+                                position_valid = True
+                    else:
+                        if end_y == start_y - 1:
+                            if piece_target != ' ' and piece_target.islower():
+                                position_valid = True
+            # FOU
+            if piece_name in ("B", "b"):
+                if diag_move:
                     position_valid = True
-    
-    # DAME
-    if piece_name in ("Q", "q"):
-        if abs(end_y - start_y) == abs(end_x - start_x) or start_x == end_x or start_y == end_y:
-            if ( piece_target == ' ' or piece_target.isupper() != piece_name.isupper() ) and not is_someone_on_the_path(board, start_pos, end_pos):
+
+            # TOUR
+            if piece_name in ("R", "r"):
+                if hor_move or vert_move:
+                    position_valid = True
+            
+            # DAME
+            if piece_name in ("Q", "q"):
+                if diag_move or hor_move or vert_move:
                     position_valid = True 
 
-    # ROI
-    if piece_name in ("K", "k"):
-        if abs(end_y - start_y) <= 1 and abs(end_x - start_x) <= 1:
-            if ( piece_target == ' ' or piece_target.isupper() != piece_name.isupper() ) and not is_someone_on_the_path(board, start_pos, end_pos):
+            # ROI
+            if piece_name in ("K", "k"):
+                if abs(end_y - start_y) <= 1 and abs(end_x - start_x) <= 1: # si on se déplace d'une case dans toutes les directions
                     position_valid = True
 
-    
     return position_valid
 
 """ USELESS WITH USER INTERFACE
@@ -318,7 +324,6 @@ def UI_drawboard_from_matrice(UI_board, game_board):
                 UI_drawpiece(UI_board, piece_name, x, y)
 
 def UI_get_legal_moves(board, piece_x, piece_y):
-    print("Getting legal moves for", board[piece_y][piece_x])
     legal_moves_coord = []
     for y in range(8):
         for x in range(8):
@@ -414,15 +419,10 @@ def UI_Init(screen, UI_board, game_board):
             piece = piece_draging[2]
             scr.blit(piece,[mouse_x-40,mouse_y-40])
             
-            
-
-        
-                        
-                        
         
         pygame.display.flip() # Uptdate the screen
         clock.tick(75) # 75 FPS limit
 
-
+game_board = initialise_game_board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 UI_drawboard_from_matrice(UI_board, game_board)
 UI_Init(scr, UI_board, game_board)
