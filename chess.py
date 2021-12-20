@@ -385,6 +385,11 @@ def UI_Init(screen, UI_board, game_board):
                         UI_board[sq_y][sq_x] = piece_draging[2] 
                         # On met à jour le plateau de jeu (matrice)
                         game_board[sq_y][sq_x] = piece_draging[3]
+                        # Promotion dame
+                        if game_board[piece_draging[1]][piece_draging[0]] in ('P', 'p') and sq_y in (7,0):
+                            queen = 'Q' if game_board[piece_draging[1]][piece_draging[0]] == "P" else 'q'
+                            game_board[sq_y][sq_x] = queen
+                            UI_drawpiece(UI_board, queen, sq_x, sq_y)
                         game_board[piece_draging[1]][piece_draging[0]] = ' '
                         last_move = [(piece_draging[0], piece_draging[1]), (sq_x, sq_y)]
                         tour = not tour # On change de joueur
