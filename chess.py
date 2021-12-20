@@ -1,5 +1,6 @@
 # Vincent MOUCADEAU 1A TP3
 
+
 import os
 import time
 from random import randint
@@ -70,11 +71,10 @@ def initialise_game_board():
 
 
 # Exemple of fen string : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-def initialise_game_board_from_fen(fen_string):
+def initialise_game_board_from_fen(fen_board_string):
     board = create_game_board()
-    fenboard = fen_string.split(' ')[0] # on récupère les positions des pièces de la chaine FEN
     pos_x, pos_y = (0, 0)
-    for i in fenboard:
+    for i in fen_board_string:
         if i == "/":
             pos_x = 0
             pos_y += 1
@@ -86,7 +86,33 @@ def initialise_game_board_from_fen(fen_string):
                 pos_x += 1
     return board
 
+def initialise_game_data_from_fen(fen_string):
+    """
+    Permet d'initialiser les données du jeu à partir d'une chaine FEN
+    require: fen_string (string)
+    ensure: return a dictionary with the game data
+    """
+    game_data = {}
+    fen_string = fen_string.split(' ')
+    game_data['board'] = initialise_game_board_from_fen(fen_string[0])
+    game_data["turn"] = fen_string[1]
 
+    # Castle rights
+    game_data["castling"] = [False, False, False, False] # [petit roque blanc, grand roque blanc, petit roque noir, grand roque noir]
+    for i in fen_string[2]:
+        if i == 'K':
+            game_data["castling"][0] = True
+        elif i == 'Q':
+            game_data["castling"][1] = True
+        elif i == 'k':
+            game_data["castling"][2] = True
+        elif i == 'q':
+            game_data["castling"][3] = True
+
+    game_data["en_passant"] = fen_string[3]
+    game_data["half_move"] = int(fen_string[4])
+    game_data["full_move"] = int(fen_string[5])
+    return game_data
 
 
 def print_matrix(matrix):
@@ -179,7 +205,31 @@ def enter_position(board):
     return (piece, pos_x, pos_y)
 
 
-
+def manage_king_roque(board, roque_data, pos_x, pos_y):
+    """
+    Permet de gérer le roque d'un roi
+    require: board (list), roque_data (tuple), pos_x, pos_y (integers)
+    ensure: return a new board with the roque
+    """
+    if roque_data[0] == "O-O":
+        if roque_data[1] == "W":
+            board[pos_y][pos_x] = " "
+            board[pos_y][pos_x + 2] = "K"
+            board[pos_y][pos_x + 1] = "R"
+        else:
+            board[pos_y][pos_x] = " "
+            board[pos_y][pos_x - 2] = "k"
+            board[pos_y][pos_x - 1] = "r"
+    else:
+        if roque_data[1] == "W":
+            board[pos_y][pos_x] = " "
+            board[pos_y][pos_x - 2] = "K"
+            board[pos_y][pos_x - 1] = "R"
+        else:
+            board[pos_y][pos_x] = " "
+            board[pos_y][pos_x + 2] = "k"
+            board[pos_y][pos_x + 1] = "r"
+    return board
 
 def is_someone_on_the_path(board, start_pos, end_pos):
     result = False
@@ -222,11 +272,15 @@ def is_someone_on_the_path(board, start_pos, end_pos):
     return result
 
 
-def is_position_valid(board, piece_name, start_pos, end_pos):
+def is_position_valid(game_data, start_pos, end_pos):
 
     position_valid = False
     start_x, start_y = start_pos[0], start_pos[1]
     end_x, end_y = end_pos[0], end_pos[1]
+
+    board = game_data["board"]
+
+    piece_name = board[start_y][start_x]
     piece_target = board[end_y][end_x]
 
     diag_move = abs(end_y - start_y) == abs(end_x - start_x)
@@ -284,6 +338,23 @@ def is_position_valid(board, piece_name, start_pos, end_pos):
             if piece_name in ("K", "k"):
                 if abs(end_y - start_y) <= 1 and abs(end_x - start_x) <= 1: # si on se déplace d'une case dans toutes les directions
                     position_valid = True
+                else:
+                    if piece_name == 'K':
+                        if start_pos == (4,7) and end_pos == (6,7):
+                            if game_data["castling"][0]:
+                                position_valid = True
+                        if start_pos == (4,7) and end_pos == (2,7) and board[7][1] == ' ':
+                            if game_data["castling"][1]:
+                                position_valid = True
+                    else:
+                        if start_pos == (4,0) and end_pos == (6,0):
+                            if game_data["castling"][2]:
+                                position_valid = True
+                        if start_pos == (4,0) and end_pos == (2,0) and board[0][1] == ' ':
+                            if game_data["castling"][3]:
+                                position_valid = True
+
+            
 
     return position_valid
 
@@ -303,12 +374,15 @@ def move_piece(board, piece_name, end_x, end_y):
 scr = pygame.display.set_mode((640,640))  
 UI_board = create_and_initialise_matrix(8,8,' ') # Create a matrix for the UI game board
 
-def UI_makeboard(screen):
+def UI_makeboard():
     white_color = (240,217,181)
     brown_color = (181,136,99)  
+    board = pygame.Surface((640,640))
+    board.fill((0,0,0))
     for k in range(8):
         for i in range(8):
-            pygame.draw.rect(screen, white_color if (i+k) % 2 == 0 else brown_color, pygame.Rect(80*i, 80*k, 80, 80)) 
+            pygame.draw.rect(board, white_color if (i+k) % 2 == 0 else brown_color, pygame.Rect(80*i, 80*k, 80, 80)) 
+    return board
  
 def UI_drawpiece(board, piece_name, pos_x, pos_y):
     img_path = "pieces/b" + piece_name + ".png" if piece_name.islower() else "pieces/w" + piece_name.lower() + ".png"
@@ -323,27 +397,102 @@ def UI_drawboard_from_matrice(UI_board, game_board):
                 piece_name = game_board[y][x]
                 UI_drawpiece(UI_board, piece_name, x, y)
 
-def UI_get_legal_moves(board, piece_x, piece_y):
+def UI_get_legal_moves(game_data, piece_x, piece_y):
     legal_moves_coord = []
     for y in range(8):
         for x in range(8):
-            if is_position_valid(board, board[piece_y][piece_x], (piece_x, piece_y), (x, y)):
+            if is_position_valid(game_data, (piece_x, piece_y), (x, y)):
                 legal_moves_coord += [(x, y)]
     return legal_moves_coord
+
+def UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves):
+    game_board = game_data["board"]
+    piece_moved = False
+    piece_name = game_board[origin[1]][origin[0]]
+    piece_color = piece_name.isupper()
+
+    if legal_moves == None:
+        legal_moves = UI_get_legal_moves(game_data, origin[0], origin[1])
+        
+    if target in legal_moves: # Si la case sélectionnée est une case valide
+        # Pour gérer les bruitages
+        if game_board[target[1]][target[0]] != ' ':
+            piece_moved = "take"
+        else:
+            piece_moved = "move"
+
+        # On place la pièce sur la case sélectionnée
+        UI_board[target[1]][target[0]] = piece_surface
+        # On met à jour le plateau de jeu (matrice)
+        game_board[target[1]][target[0]] = piece_name
+        game_board[origin[1]][origin[0]] = ' '
+        
+        # Promotion dame
+        if piece_name in ('P', 'p') and target[1] in (7,0):
+            queen = 'Q' if piece_name == "P" else 'q'
+            game_board[target[1]][target[0]] = queen
+            UI_drawpiece(UI_board, queen, target[0], target[1])
+            piece_moved = "promotion"
+
+
+        if piece_name in ('K', 'k'):
+            if target[0] - origin[0] == 2: # Si petit roque
+                rook_name = 'R' if piece_color else 'r'
+                rook_origin = (7,7) if piece_color else (7,0)
+                rook_target = (5,7) if piece_color else (5,0)
+                game_board[rook_target[1]][rook_target[0]] = rook_name
+                UI_drawpiece(UI_board, rook_name, rook_target[0], rook_target[1])
+                game_board[rook_origin[1]][rook_origin[0]] = ' '
+                UI_board[rook_origin[1]][rook_origin[0]] = ' '
+                piece_moved = "castling"
+
+            if origin[0] - target[0] == 2: # Si grand roque
+                rook_name = 'R' if piece_color else 'r'
+                rook_origin = (0,7) if piece_color else (0,0)
+                rook_target = (3,7) if piece_color else (3,0)
+                game_board[rook_target[1]][rook_target[0]] = rook_name
+                UI_drawpiece(UI_board, rook_name, rook_target[0], rook_target[1])
+                game_board[rook_origin[1]][rook_origin[0]] = ' '
+                UI_board[rook_origin[1]][rook_origin[0]] = ' '
+                piece_moved = "castling"
+
+            # Le roi ne peut plus roquer une fois qu'il a bougé
+            if piece_color:
+                game_data["castling"][0] = False
+                game_data["castling"][1] = False
+            else:
+                game_data["castling"][2] = False
+                game_data["castling"][3] = False
+        
+        # Si la tour bouge, on ne peut plus roquer du côté de la tour
+        if piece_name in ('R', 'r'):
+            if origin == (7,7):
+                game_data["castling"][0] = False
+            elif origin == (0,7):
+                game_data["castling"][1] = False
+            elif origin == (7,0):
+                game_data["castling"][2] = False
+            elif origin == (0,0):
+                game_data["castling"][3] = False
+    else:
+        # On replace la pièce dans sa case d'origine
+        UI_board[origin[1]][origin[0]] = piece_surface
+    return piece_moved
 
 
 clock = pygame.time.Clock()
 
-def UI_Init(screen, UI_board, game_board):
+def UI_Init(screen, UI_board, game_data):
     pygame.init()  
     done = False  
     piece_draging = False
     last_move = False # [start_pos, end_pos]
     legal_moves = None
     tour = True # True = blanc, False = noir
-    
+    game_board = game_data["board"]
+    board_background = UI_makeboard()
     while not done:  
-        UI_makeboard(screen)
+        screen.blit(board_background, (0,0))
         if last_move:
             start_x, start_y = last_move[0]
             end_x, end_y = last_move[1]
@@ -362,48 +511,39 @@ def UI_Init(screen, UI_board, game_board):
                 
                 if game_board[sq_y][sq_x] != ' ': # Si il y a une pièce sur la case
                     if tour and game_board[sq_y][sq_x].isupper() or not tour and game_board[sq_y][sq_x].islower():
-                        piece_draging = [sq_x, sq_y, UI_board[sq_y][sq_x], game_board[sq_y][sq_x]] # On stocke les coordonnées de la pièce, son nom et sa "surface" pour la déplacer
+                        # On stocke les coordonnées de la pièce et sa "surface" pour la déplacer
+                        piece_draging = (sq_x, sq_y, UI_board[sq_y][sq_x]) 
                         UI_board[sq_y][sq_x] = ' ' # On enlève la pièce de l'UI
-                        
-                    
-
+                        legal_moves = UI_get_legal_moves(game_data, sq_x, sq_y)
+                       
             if event.type == pygame.MOUSEBUTTONUP:
                 if piece_draging:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
-                    sq_x, sq_y = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
-                    if legal_moves == None:
-                        legal_moves = UI_get_legal_moves(game_board, piece_draging[0], piece_draging[1])
-                    if (sq_x, sq_y) in legal_moves: # Si la case sélectionnée est une case valide
-                        # Play sound
-                        if UI_board[sq_y][sq_x] != ' ': # If there is a piece here
+                    origin = (piece_draging[0], piece_draging[1])
+                    target = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
+                    piece_surface = piece_draging[2]
+
+                    move_res = UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
+                    # Play sound
+                    if move_res:
+                        if move_res == "take":
                             pygame.mixer.music.load('audio/take.mp3')
-                        else:
-                            pygame.mixer.music.load('audio/move.mp3')
+                        elif move_res == "move":
+                            pygame.mixer.music.load('audio/move.mp3')   
+                        elif move_res == "promotion":
+                            pygame.mixer.music.load('audio/castle.mp3')
+                        elif move_res == "castling":
+                            pygame.mixer.music.load('audio/castle.mp3')
+                            
                         pygame.mixer.music.play()
-                        
-                        # On place la pièce sur la case sélectionnée
-                        UI_board[sq_y][sq_x] = piece_draging[2] 
-                        # On met à jour le plateau de jeu (matrice)
-                        game_board[sq_y][sq_x] = piece_draging[3]
-                        # Promotion dame
-                        if game_board[piece_draging[1]][piece_draging[0]] in ('P', 'p') and sq_y in (7,0):
-                            queen = 'Q' if game_board[piece_draging[1]][piece_draging[0]] == "P" else 'q'
-                            game_board[sq_y][sq_x] = queen
-                            UI_drawpiece(UI_board, queen, sq_x, sq_y)
-                        game_board[piece_draging[1]][piece_draging[0]] = ' '
-                        last_move = [(piece_draging[0], piece_draging[1]), (sq_x, sq_y)]
+                        last_move = [origin, target]
                         tour = not tour # On change de joueur
-                    else:
-                        # On replace la pièce dans sa case d'origine
-                        UI_board[piece_draging[1]][piece_draging[0]] = piece_draging[2] 
                     
                     piece_draging = False # On arrête de déplacer la pièce
                     legal_moves = None # On vide les legal moves
         
         if piece_draging:
             # On affiche les cases valides
-            if legal_moves == None:
-                legal_moves = UI_get_legal_moves(game_board, sq_x, sq_y)
             for square in legal_moves:
                 green_color = (0,255,0)
                 hint = pygame.Surface((80,80))
@@ -426,8 +566,9 @@ def UI_Init(screen, UI_board, game_board):
             
         
         pygame.display.flip() # Uptdate the screen
-        clock.tick(75) # 75 FPS limit
+        clock.tick(144) # 75 FPS limit
 
-game_board = initialise_game_board_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-UI_drawboard_from_matrice(UI_board, game_board)
-UI_Init(scr, UI_board, game_board)
+
+game_data = initialise_game_data_from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+UI_drawboard_from_matrice(UI_board, game_data["board"])
+UI_Init(scr, UI_board, game_data)
