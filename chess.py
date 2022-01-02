@@ -589,106 +589,106 @@ def UI_Init(screen, UI_board, game_data):
     legal_moves = None
     tour = True # True = blanc, False = noir
     board_background = UI_makeboard()
-    while not done:  
-        screen.blit(board_background, (0,0))
-        if game_data["w_in_check"] or game_data["b_in_check"]:
-            king_name = 'K' if game_data["w_in_check"] else 'k'
-            king_pos_x, king_pos_y = get_piece_coordinates(game_data["board"], king_name)
-            red_color = (255, 43, 43)
-            hint = pygame.Surface((80,80))
-            hint.set_alpha(100)
-            hint.fill(red_color)
-            screen.blit(hint, [80*king_pos_x, 80*king_pos_y])
-        if last_move:
-            start_x, start_y = last_move[0]
-            end_x, end_y = last_move[1]
-            yellow_color = (247,236,91)
-            hint = pygame.Surface((80,80))
-            hint.set_alpha(100)
-            hint.fill(yellow_color)
-            screen.blit(hint, [80*start_x, 80*start_y])
-            screen.blit(hint, [80*end_x, 80*end_y])
-        for event in pygame.event.get():  
-            if event.type == pygame.QUIT:  
-                done = True 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                sq_x, sq_y = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
-                if game_data["board"][sq_y][sq_x] != ' ': # Si il y a une pièce sur la case
-                    if tour and game_data["board"][sq_y][sq_x].isupper() or not tour and game_data["board"][sq_y][sq_x].islower():
-                        # On stocke les coordonnées de la pièce et sa "surface" pour la déplacer
-                        piece_draging = (sq_x, sq_y, UI_board[sq_y][sq_x]) 
-                        UI_board[sq_y][sq_x] = ' ' # On enlève la pièce de l'UI
-                        legal_moves = get_legal_moves(game_data, sq_x, sq_y)
-                        
-                       
-            if event.type == pygame.MOUSEBUTTONUP:
-                if piece_draging:
-                    mouse_x, mouse_y = pygame.mouse.get_pos()
-                    origin = (piece_draging[0], piece_draging[1])
-                    target = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
-                    piece_surface = piece_draging[2]
+    smallfont = pygame.font.SysFont('Corbel', 35)
 
-                    move_res = UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
-                    # Play sound
-                    if move_res:
-                        if move_res == "take":
-                            pygame.mixer.music.load('audio/take.mp3')
-                        elif move_res == "move":
-                            pygame.mixer.music.load('audio/move.mp3')   
-                        elif move_res == "promotion":
-                            pygame.mixer.music.load('audio/castle.mp3')
-                        elif move_res == "castling":
-                            pygame.mixer.music.load('audio/castle.mp3')
-                            
-                        pygame.mixer.music.play()
-                        last_move = [origin, target]
-                        tour = not tour # On change de joueur
-                    
-                    piece_draging = False # On arrête de déplacer la pièce
-                    legal_moves = None # On vide les legal moves
-            if event.type == pygame.KEYDOWN:
-                keys = pygame.key.get_pressed()
-                if keys[pygame.K_LEFT] and len(game_data["moves"]) > 1:
-                    UI_board = UI_unmakemove(game_data)
-                    tour = not tour # On change de joueur
-                    last_move = False
-        if piece_draging:
-            # On affiche les cases valides
-            for square in legal_moves:
-                green_color = (0,255,0)
-                hint = pygame.Surface((80,80))
-                hint.set_alpha(50)
-                hint.fill(green_color)
-                scr.blit(hint, [80*square[0], 80*square[1]])
+    gray_color = (50, 50, 50)
+    red_color = (255, 43, 43)
+    yellow_color = (247, 236, 91)
+    green_color = (0, 255, 0)
+    while not done: 
+        if game_data["b_win"] or game_data["w_win"] or game_data["draw"]: 
+            textcontent = "Les blancs ont gagné" if game_data["w_win"] else "Les noirs ont gagné" if game_data["b_win"] else "Partie nulle"
 
-        # On affiche les pièces sur le plateau
-        for y in range(8):
-            for x in range(8):
-                if UI_board[y][x] != ' ':
-                    screen.blit(UI_board[y][x],[80*x,80*y])
-
-        # Si on déplace une pièce
-        if piece_draging:
-            mouse_x, mouse_y = pygame.mouse.get_pos()  
-            # On positionne le centre de la pièce sur la souris
-            piece = piece_draging[2]
-            screen.blit(piece,[mouse_x-40,mouse_y-40])
-            
-        if game_data["b_win"]:
-            gray_color = (50, 50, 50)
             hint = pygame.Surface((640,640))
             hint.set_alpha(100)
             hint.fill(gray_color)
             screen.blit(hint, [0,0])
-            smallfont = pygame.font.SysFont('Corbel',35)
-            text = smallfont.render('quit' , True , (255,255,255))
-            screen.blit(text, [640/2,640/2])
+            text = smallfont.render(textcontent, True, (255, 255, 255))
+            text_width = smallfont.size(textcontent)[0]
+            screen.blit(text, [640/2-text_width/2,640/2])
+        else:
+            screen.blit(board_background, (0,0))
+            if game_data["w_in_check"] or game_data["b_in_check"]:
+                king_name = 'K' if game_data["w_in_check"] else 'k'
+                king_pos_x, king_pos_y = get_piece_coordinates(game_data["board"], king_name)
+                hint = pygame.Surface((80,80))
+                hint.set_alpha(100)
+                hint.fill(red_color)
+                screen.blit(hint, [80*king_pos_x, 80*king_pos_y])
+            if last_move:
+                start_x, start_y = last_move[0]
+                end_x, end_y = last_move[1]
+                hint = pygame.Surface((80,80))
+                hint.set_alpha(100)
+                hint.fill(yellow_color)
+                screen.blit(hint, [80*start_x, 80*start_y])
+                screen.blit(hint, [80*end_x, 80*end_y])
+            for event in pygame.event.get():  
+                if event.type == pygame.QUIT:  
+                    done = True 
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_x, mouse_y = pygame.mouse.get_pos()
+                    sq_x, sq_y = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
+                    if game_data["board"][sq_y][sq_x] != ' ': # Si il y a une pièce sur la case
+                        if tour and game_data["board"][sq_y][sq_x].isupper() or not tour and game_data["board"][sq_y][sq_x].islower():
+                            # On stocke les coordonnées de la pièce et sa "surface" pour la déplacer
+                            piece_draging = (sq_x, sq_y, UI_board[sq_y][sq_x]) 
+                            UI_board[sq_y][sq_x] = ' ' # On enlève la pièce de l'UI
+                            legal_moves = get_legal_moves(game_data, sq_x, sq_y)
+                            
+                        
+                if event.type == pygame.MOUSEBUTTONUP:
+                    if piece_draging:
+                        mouse_x, mouse_y = pygame.mouse.get_pos()
+                        origin = (piece_draging[0], piece_draging[1])
+                        target = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
+                        piece_surface = piece_draging[2]
 
-        textcontent = "Les blancs ont gagné" if game_data["w_win"] else "Les noirs ont gagné" if game_data["b_win"] else "Partie nulle" if game_data["draw"] else False
-        if textcontent:
-            print(textcontent)
-            done = True
+                        move_res = UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
+                        # Play sound
+                        if move_res:
+                            if move_res == "take":
+                                pygame.mixer.music.load('audio/take.mp3')
+                            elif move_res == "move":
+                                pygame.mixer.music.load('audio/move.mp3')   
+                            elif move_res == "promotion":
+                                pygame.mixer.music.load('audio/castle.mp3')
+                            elif move_res == "castling":
+                                pygame.mixer.music.load('audio/castle.mp3')
+                                
+                            pygame.mixer.music.play()
+                            last_move = [origin, target]
+                            tour = not tour # On change de joueur
+                        
+                        piece_draging = False # On arrête de déplacer la pièce
+                        legal_moves = None # On vide les legal moves
+                if event.type == pygame.KEYDOWN:
+                    keys = pygame.key.get_pressed()
+                    if keys[pygame.K_LEFT] and len(game_data["moves"]) > 1:
+                        UI_board = UI_unmakemove(game_data)
+                        tour = not tour # On change de joueur
+                        last_move = False
+            if piece_draging:
+                # On affiche les cases valides
+                for square in legal_moves:
+
+                    hint = pygame.Surface((80,80))
+                    hint.set_alpha(50)
+                    hint.fill(green_color)
+                    scr.blit(hint, [80*square[0], 80*square[1]])
+
+            # On affiche les pièces sur le plateau
+            for y in range(8):
+                for x in range(8):
+                    if UI_board[y][x] != ' ':
+                        screen.blit(UI_board[y][x],[80*x,80*y])
+
+            # Si on déplace une pièce
+            if piece_draging:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                # On positionne le centre de la pièce sur la souris
+                piece = piece_draging[2]
+                screen.blit(piece,[mouse_x-40,mouse_y-40])
 
         pygame.display.flip() # Uptdate the screen
         clock.tick(60) # 75 FPS limit
