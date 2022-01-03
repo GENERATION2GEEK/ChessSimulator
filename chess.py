@@ -391,7 +391,6 @@ def generate_pseudo_legal_moves(game_data, color):
         for x in range(8):
             if game_data["board"][y][x] != ' ' and (game_data["board"][y][x].isupper() and color) or (game_data["board"][y][x].islower() and not color):
                 pseudo_legal_moves += get_pseudo_legal_moves(game_data, x, y)
-    print(set(pseudo_legal_moves), len(set(pseudo_legal_moves)))
     return set(pseudo_legal_moves)
 
 def is_in_check(game_data, color):
@@ -498,7 +497,8 @@ def UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
                 game_data["castling"][2] = False
                 game_data["castling"][3] = False
 
-        
+        # On reset "en_passant"
+            game_data["en_passant"] = False
 
         # On place la pièce sur la case sélectionnée
         UI_board[target[1]][target[0]] = piece_surface
@@ -510,16 +510,7 @@ def UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
                 game_board[origin[1]][origin[0]] = queen
                 UI_drawpiece(UI_board, queen, target[0], target[1])
                 piece_moved = "promotion"
-
-        # On met à jour le plateau de jeu (matrice)
-        makemove(game_data, origin, target)
-
-
-        # On reset "en_passant"
-        game_data["en_passant"] = False
         
-        
-        if piece_name in ('P', 'p'):
             # En passant
             if abs(target[1] - origin[1]) == 2: # Si le pion avance de 2 cases, "en passant" devient possible
                 game_data["en_passant"] = (target[0], target[1])
@@ -527,7 +518,11 @@ def UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
                 to_remove = (target[0], origin[1]) # Coordonnées du pion que l'on prend en passant
                 game_board[to_remove[1]][to_remove[0]] = ' '
                 UI_board[to_remove[1]][to_remove[0]] = ' '
-                piece_moved = "take"        
+                piece_moved = "take"   
+
+        # On met à jour le plateau de jeu (matrice)
+        makemove(game_data, origin, target)
+
 
         # Si la tour bouge, on ne peut plus roquer du côté de la tour
         if piece_name in ('R', 'r'):
@@ -558,6 +553,7 @@ def UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
         
         # Si l'adversaire est en échec après le coup
         if is_in_check(game_data, not piece_color):
+            piece_moved = "check"
             if piece_color:
                 # Les noirs sont en échec
                 game_data["b_in_check"] = True
@@ -567,6 +563,7 @@ def UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
         
         # Checkmate!
         if generate_legal_moves(game_data, not piece_color) == []:
+            piece_moved = "checkmate"
             if piece_color:
                 game_data["w_win"] = True
             else:
@@ -649,6 +646,10 @@ def UI_Init(screen, UI_board, game_data):
                             pygame.mixer.music.load('audio/castle.mp3')
                         elif move_res == "castling":
                             pygame.mixer.music.load('audio/castle.mp3')
+                        elif move_res == "check":
+                            pygame.mixer.music.load('audio/check.mp3')
+                        elif move_res == "checkmate":
+                            pygame.mixer.music.load('audio/checkmate.mp3')
                             
                         pygame.mixer.music.play()
                         last_move = [origin, target]
