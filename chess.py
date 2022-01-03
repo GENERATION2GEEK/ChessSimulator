@@ -2,8 +2,6 @@
 
 
 import os
-import time
-from random import randint
 import pygame  
 
 
@@ -48,13 +46,13 @@ def matrice_copy(origin):
 
 def create_game_board():
     """
-    Permet de créer un plateau de jeu (matrice 8x8)
+    Permet de créer un plateau de jeu vide (matrice 8x8)
     require: nothing
     ensure: return a correct game board
     """
     return create_and_initialise_matrix(8,8, ' ')
 
-"""
+""" Ancien système de notation
 def initialise_game_board():
     board = create_game_board()
     for i in range(8):
@@ -67,6 +65,11 @@ def initialise_game_board():
 """
 
 def initialise_game_board():
+    """
+      Permet d'initialiser un plateau de jeu d'échec
+      require: fen_string (string)
+      ensure: return a matrix with the pieces
+    """
     pieces = ["r","n","b","q","k","b","n","r"]
     board = create_game_board()
     for i in range(8):
@@ -80,6 +83,12 @@ def initialise_game_board():
 
 # Exemple of fen string : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 def initialise_game_board_from_fen(fen_board_string):
+    """
+    Permet d'initialiser un plateau de jeu à partir d'une chaine FEN
+    require: fen_string (string)
+    ensure: return a matrix with the pieces
+    """
+    
     board = create_game_board()
     pos_x, pos_y = (0, 0)
     for i in fen_board_string:
@@ -119,8 +128,6 @@ def initialise_game_data_from_fen(fen_string):
             game_data["castling"][3] = True
 
     game_data["en_passant"] = False # fen_string[3] # Il faudrait gérer ici la prise en passant à partir du FEN
-    game_data["half_move"] = int(fen_string[4])
-    game_data["full_move"] = int(fen_string[5])
     game_data["w_in_check"] = False # blancs en échec ?
     game_data["b_in_check"] = False # noirs en échec ?
     game_data["draw"] = False # Partie nulle ?
@@ -181,14 +188,14 @@ def is_a_piece(board, piece_name):
     return is_a_piece
 
 
-
+""" (Version console)
 def force_integer_input(text):
-    """
+    
     Demande à l'utilisateur d'entrer un nombre entier pour éviter les erreurs
     require: input text
     ensure: force the user to enter a correct integer
     return: an integer !!!
-    """
+    
     var = input(text)
     while isinstance(var, str): # Tant que var est un string
         try:
@@ -199,14 +206,15 @@ def force_integer_input(text):
 
     return var
 
+
 def enter_position(board):
-    """
+    
     Demande à l'utilisateur d'entrer des coordonnées appartenant au plateau
     require: board (list)
     ensure: force the user to enter correct coordinates (integers)
     return: tuple (x, y) => coordinates
-    """
-    piece = input("Entrez le nom de la pièce à bouger : ")
+    
+    piece = "Entrez les coordonnées de la pièce à bouger : "
     pos_x = force_integer_input("Entrez une coordonnée en x : ")
     pos_y = force_integer_input("Entrez une coordonnée en y : ")
     while not is_in_matrix(board, pos_x, pos_y):
@@ -217,6 +225,7 @@ def enter_position(board):
         print("Cette pièce n'existe pas sur le plateau.")
         piece = input("Entrez le nom de la pièce à bouger : ")
     return (piece, pos_x, pos_y)
+"""
 
 def makemove(game_data, start_pos, end_pos):
     board = game_data["board"]
@@ -369,44 +378,21 @@ def is_position_valid(game_data, start_pos, end_pos):
 
 
 def get_pseudo_legal_moves(game_data, piece_x, piece_y):
-    legal_moves_coord = []
+    pseudo_legal_moves = []
     for y in range(8):
         for x in range(8):
             if is_position_valid(game_data, (piece_x, piece_y), (x, y)):
-                legal_moves_coord += [(x, y)]
-    return legal_moves_coord
+                pseudo_legal_moves += [(x, y)]
+    return pseudo_legal_moves
 
 def generate_pseudo_legal_moves(game_data, color):
-    legal_moves = []
+    pseudo_legal_moves = []
     for y in range(8):
         for x in range(8):
             if game_data["board"][y][x] != ' ' and (game_data["board"][y][x].isupper() and color) or (game_data["board"][y][x].islower() and not color):
-                legal_moves += get_pseudo_legal_moves(game_data, x, y)
-    return legal_moves
-
-
-def get_legal_moves(game_data, piece_x, piece_y):
-    is_in_check = False
-    color = game_data["board"][piece_y][piece_x].isupper()
-    myking_name = "K" if color else "k"
-    pseudo_legal_moves = get_pseudo_legal_moves(game_data, piece_x, piece_y)
-    legal_moves = []
-    for move in pseudo_legal_moves:
-        # On simule le coup pour vérifier si le roi est en échec
-        makemove(game_data, (piece_x, piece_y), move)
-
-        myking_coord = get_piece_coordinates(game_data["board"], myking_name) # On récupère la position du roi
-        
-        for ennemy_move in generate_pseudo_legal_moves(game_data, not color):
-            if ennemy_move == myking_coord: # Si l'adversaire peut manger le roi
-                is_in_check = True # Le roi est en échec
-        
-        if not is_in_check:
-            legal_moves += [move] 
-        is_in_check = False
-
-        unmakemove(game_data)
-    return legal_moves
+                pseudo_legal_moves += get_pseudo_legal_moves(game_data, x, y)
+    print(set(pseudo_legal_moves), len(set(pseudo_legal_moves)))
+    return set(pseudo_legal_moves)
 
 def is_in_check(game_data, color):
     is_in_check = False
@@ -416,6 +402,23 @@ def is_in_check(game_data, color):
             if my_move == adv_king_pos: # Si je peux manger le roi adverse
                 is_in_check = True # Le roi est en échec
     return is_in_check
+
+def get_legal_moves(game_data, piece_x, piece_y):
+    color = game_data["board"][piece_y][piece_x].isupper()
+    pseudo_legal_moves = get_pseudo_legal_moves(game_data, piece_x, piece_y)
+    legal_moves = []
+    for move in pseudo_legal_moves:
+        # On simule le coup pour vérifier si le roi est en échec
+        makemove(game_data, (piece_x, piece_y), move)
+        
+        if not is_in_check(game_data, color): # Si l'adversaire peut manger le roi
+            legal_moves += [move] 
+        
+        # On annule le coup
+        unmakemove(game_data)
+    return legal_moves
+
+
 
 def generate_legal_moves(game_data, color):
     legal_moves = []
@@ -466,35 +469,6 @@ def UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
         else:
             piece_moved = "move"
 
-        # On place la pièce sur la case sélectionnée
-        UI_board[target[1]][target[0]] = piece_surface
-        
-        # On met à jour le plateau de jeu (matrice)
-        makemove(game_data, origin, target)
-
-
-        # On reset "en_passant"
-        game_data["en_passant"] = False
-        
-        
-        if piece_name in ('P', 'p'):
-            # Promotion dame
-            if target[1] in (7,0):
-                queen = 'Q' if piece_color else 'q'
-                game_board[target[1]][target[0]] = queen
-                UI_drawpiece(UI_board, queen, target[0], target[1])
-                piece_moved = "promotion"
-
-            # En passant
-            if abs(target[1] - origin[1]) == 2: # Si le pion avance de 2 cases, "en passant" devient possible
-                game_data["en_passant"] = (target[0], target[1])
-            if origin[0] != target[0] and piece_moved == "move": # prise en passant
-                to_remove = (target[0], origin[1]) # Coordonnées du pion que l'on prend en passant
-                game_board[to_remove[1]][to_remove[0]] = ' '
-                UI_board[to_remove[1]][to_remove[0]] = ' '
-                piece_moved = "take"
-
-
         if piece_name in ('K', 'k'):
             if target[0] - origin[0] == 2: # Si petit roque
                 rook_name = 'R' if piece_color else 'r'
@@ -523,7 +497,38 @@ def UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
             else:
                 game_data["castling"][2] = False
                 game_data["castling"][3] = False
+
         
+
+        # On place la pièce sur la case sélectionnée
+        UI_board[target[1]][target[0]] = piece_surface
+        
+        if piece_name in ('P', 'p'):
+            # Promotion dame
+            if target[1] in (7,0):
+                queen = 'Q' if piece_color else 'q'
+                game_board[origin[1]][origin[0]] = queen
+                UI_drawpiece(UI_board, queen, target[0], target[1])
+                piece_moved = "promotion"
+
+        # On met à jour le plateau de jeu (matrice)
+        makemove(game_data, origin, target)
+
+
+        # On reset "en_passant"
+        game_data["en_passant"] = False
+        
+        
+        if piece_name in ('P', 'p'):
+            # En passant
+            if abs(target[1] - origin[1]) == 2: # Si le pion avance de 2 cases, "en passant" devient possible
+                game_data["en_passant"] = (target[0], target[1])
+            if origin[0] != target[0] and piece_moved == "move": # prise en passant
+                to_remove = (target[0], origin[1]) # Coordonnées du pion que l'on prend en passant
+                game_board[to_remove[1]][to_remove[0]] = ' '
+                UI_board[to_remove[1]][to_remove[0]] = ' '
+                piece_moved = "take"        
+
         # Si la tour bouge, on ne peut plus roquer du côté de la tour
         if piece_name in ('R', 'r'):
             if origin == (7,7):
@@ -596,101 +601,101 @@ def UI_Init(screen, UI_board, game_data):
     yellow_color = (247, 236, 91)
     green_color = (0, 255, 0)
     while not done: 
+        screen.blit(board_background, (0,0))
+        if game_data["w_in_check"] or game_data["b_in_check"]:
+            king_name = 'K' if game_data["w_in_check"] else 'k'
+            king_pos_x, king_pos_y = get_piece_coordinates(game_data["board"], king_name)
+            hint = pygame.Surface((80,80))
+            hint.set_alpha(100)
+            hint.fill(red_color)
+            screen.blit(hint, [80*king_pos_x, 80*king_pos_y])
+        if last_move:
+            start_x, start_y = last_move[0]
+            end_x, end_y = last_move[1]
+            hint = pygame.Surface((80,80))
+            hint.set_alpha(100)
+            hint.fill(yellow_color)
+            screen.blit(hint, [80*start_x, 80*start_y])
+            screen.blit(hint, [80*end_x, 80*end_y])
+        for event in pygame.event.get():  
+            if event.type == pygame.QUIT:  
+                done = True 
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                sq_x, sq_y = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
+                if game_data["board"][sq_y][sq_x] != ' ': # Si il y a une pièce sur la case
+                    if tour and game_data["board"][sq_y][sq_x].isupper() or not tour and game_data["board"][sq_y][sq_x].islower():
+                        # On stocke les coordonnées de la pièce et sa "surface" pour la déplacer
+                        piece_draging = (sq_x, sq_y, UI_board[sq_y][sq_x]) 
+                        UI_board[sq_y][sq_x] = ' ' # On enlève la pièce de l'UI
+                        legal_moves = get_legal_moves(game_data, sq_x, sq_y)
+                        
+                    
+            if event.type == pygame.MOUSEBUTTONUP:
+                if piece_draging:
+                    mouse_x, mouse_y = pygame.mouse.get_pos()
+                    origin = (piece_draging[0], piece_draging[1])
+                    target = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
+                    piece_surface = piece_draging[2]
+
+                    move_res = UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
+                    # Play sound
+                    if move_res:
+                        if move_res == "take":
+                            pygame.mixer.music.load('audio/take.mp3')
+                        elif move_res == "move":
+                            pygame.mixer.music.load('audio/move.mp3')   
+                        elif move_res == "promotion":
+                            pygame.mixer.music.load('audio/castle.mp3')
+                        elif move_res == "castling":
+                            pygame.mixer.music.load('audio/castle.mp3')
+                            
+                        pygame.mixer.music.play()
+                        last_move = [origin, target]
+                        tour = not tour # On change de joueur
+                    
+                    piece_draging = False # On arrête de déplacer la pièce
+                    legal_moves = None # On vide les legal moves
+            if event.type == pygame.KEYDOWN:
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_LEFT] and len(game_data["moves"]) > 1:
+                    UI_board = UI_unmakemove(game_data)
+                    tour = not tour # On change de joueur
+                    last_move = False
+        if piece_draging:
+            # On affiche les cases valides
+            for square in legal_moves:
+
+                hint = pygame.Surface((80,80))
+                hint.set_alpha(50)
+                hint.fill(green_color)
+                scr.blit(hint, [80*square[0], 80*square[1]])
+
+        # On affiche les pièces sur le plateau
+        for y in range(8):
+            for x in range(8):
+                if UI_board[y][x] != ' ':
+                    screen.blit(UI_board[y][x],[80*x,80*y])
+
+        # Si on déplace une pièce
+        if piece_draging:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            # On positionne le centre de la pièce sur la souris
+            piece = piece_draging[2]
+            screen.blit(piece,[mouse_x-40,mouse_y-40])
+
         if game_data["b_win"] or game_data["w_win"] or game_data["draw"]: 
             textcontent = "Les blancs ont gagné" if game_data["w_win"] else "Les noirs ont gagné" if game_data["b_win"] else "Partie nulle"
-
-            hint = pygame.Surface((640,640))
-            hint.set_alpha(100)
-            hint.fill(gray_color)
-            screen.blit(hint, [0,0])
-            text = smallfont.render(textcontent, True, (255, 255, 255))
             text_width = smallfont.size(textcontent)[0]
+            text_height = smallfont.size(textcontent)[1]
+            hint = pygame.Surface((text_width+20,text_height+20))
+            hint.set_alpha(255)
+            hint.fill(gray_color)
+            screen.blit(hint, [640/2-(text_width+20)/2,640/2-(text_height)/2])
+            text = smallfont.render(textcontent, True, (255, 255, 255))
             screen.blit(text, [640/2-text_width/2,640/2])
-        else:
-            screen.blit(board_background, (0,0))
-            if game_data["w_in_check"] or game_data["b_in_check"]:
-                king_name = 'K' if game_data["w_in_check"] else 'k'
-                king_pos_x, king_pos_y = get_piece_coordinates(game_data["board"], king_name)
-                hint = pygame.Surface((80,80))
-                hint.set_alpha(100)
-                hint.fill(red_color)
-                screen.blit(hint, [80*king_pos_x, 80*king_pos_y])
-            if last_move:
-                start_x, start_y = last_move[0]
-                end_x, end_y = last_move[1]
-                hint = pygame.Surface((80,80))
-                hint.set_alpha(100)
-                hint.fill(yellow_color)
-                screen.blit(hint, [80*start_x, 80*start_y])
-                screen.blit(hint, [80*end_x, 80*end_y])
-            for event in pygame.event.get():  
-                if event.type == pygame.QUIT:  
-                    done = True 
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    mouse_x, mouse_y = pygame.mouse.get_pos()
-                    sq_x, sq_y = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
-                    if game_data["board"][sq_y][sq_x] != ' ': # Si il y a une pièce sur la case
-                        if tour and game_data["board"][sq_y][sq_x].isupper() or not tour and game_data["board"][sq_y][sq_x].islower():
-                            # On stocke les coordonnées de la pièce et sa "surface" pour la déplacer
-                            piece_draging = (sq_x, sq_y, UI_board[sq_y][sq_x]) 
-                            UI_board[sq_y][sq_x] = ' ' # On enlève la pièce de l'UI
-                            legal_moves = get_legal_moves(game_data, sq_x, sq_y)
-                            
-                        
-                if event.type == pygame.MOUSEBUTTONUP:
-                    if piece_draging:
-                        mouse_x, mouse_y = pygame.mouse.get_pos()
-                        origin = (piece_draging[0], piece_draging[1])
-                        target = (int(8*(mouse_x/640)), int(8*(mouse_y/640)))
-                        piece_surface = piece_draging[2]
 
-                        move_res = UI_makemove(game_data, UI_board, origin, target, piece_surface, legal_moves)
-                        # Play sound
-                        if move_res:
-                            if move_res == "take":
-                                pygame.mixer.music.load('audio/take.mp3')
-                            elif move_res == "move":
-                                pygame.mixer.music.load('audio/move.mp3')   
-                            elif move_res == "promotion":
-                                pygame.mixer.music.load('audio/castle.mp3')
-                            elif move_res == "castling":
-                                pygame.mixer.music.load('audio/castle.mp3')
-                                
-                            pygame.mixer.music.play()
-                            last_move = [origin, target]
-                            tour = not tour # On change de joueur
-                        
-                        piece_draging = False # On arrête de déplacer la pièce
-                        legal_moves = None # On vide les legal moves
-                if event.type == pygame.KEYDOWN:
-                    keys = pygame.key.get_pressed()
-                    if keys[pygame.K_LEFT] and len(game_data["moves"]) > 1:
-                        UI_board = UI_unmakemove(game_data)
-                        tour = not tour # On change de joueur
-                        last_move = False
-            if piece_draging:
-                # On affiche les cases valides
-                for square in legal_moves:
-
-                    hint = pygame.Surface((80,80))
-                    hint.set_alpha(50)
-                    hint.fill(green_color)
-                    scr.blit(hint, [80*square[0], 80*square[1]])
-
-            # On affiche les pièces sur le plateau
-            for y in range(8):
-                for x in range(8):
-                    if UI_board[y][x] != ' ':
-                        screen.blit(UI_board[y][x],[80*x,80*y])
-
-            # Si on déplace une pièce
-            if piece_draging:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                # On positionne le centre de la pièce sur la souris
-                piece = piece_draging[2]
-                screen.blit(piece,[mouse_x-40,mouse_y-40])
-
-        pygame.display.flip() # Uptdate the screen
+        pygame.display.flip() # Update the screen
         clock.tick(60) # 75 FPS limit
 
 
