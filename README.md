@@ -1,5 +1,5 @@
 # ChessSimulator
-Ceci est un jeu d'échecs codé en Python (non terminé)
+Ceci est un jeu d'échecs codé en Python (non terminé) \n
 Fonctionnalités (très basique) :
   - Calcul des coups légaux
   - Echecs et Echecs et mat
